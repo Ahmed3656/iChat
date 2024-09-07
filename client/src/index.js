@@ -18,7 +18,7 @@ import Settings from './pages/Settings';
 // User context to pass the loggedin user through the pages for authorization
 import UserProvider, {UserContext} from './context/userContext';
 
-const ConfigureHome = ({ children }) => {
+const ConfigureHome = () => {
   const { currUser } = useContext(UserContext);
   
   return currUser ? <DirectChats /> : <Login />;
