@@ -22,7 +22,7 @@ app.use(upload());
 app.use('/uploads', express.static(__dirname + '/uploads'));
 
 // API routes
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
     res.send('Welcome to the API!');
