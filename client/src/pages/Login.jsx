@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
-import { Link,useNavigate } from 'react-router-dom';  // Import Link for navigation
+import { Link,useNavigate } from 'react-router-dom';
 
 const Login = () => 
   {
@@ -24,7 +24,7 @@ const Login = () =>
     console.log('User Identifier:', input.identifier);
     console.log('Password:', input.password);
       try {
-        const res = await fetch('http://localhost:5000/api/users/login', {
+        const res = await fetch(`${process.env.REACT_APP_BASE_URL}/users/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(UserData),
@@ -34,7 +34,7 @@ const Login = () =>
         if (res.ok) {
           localStorage.setItem('token', data.token); // Save token
           console.log('Login successful');
-          navigate('/Chats')
+          navigate('/chats')
           
         } else {
           setError(data.msg); // Handle error

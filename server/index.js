@@ -6,6 +6,7 @@ require('dotenv').config();
 
 // Route handlers
 const userRoutes = require('./routes/userRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const port = process.env.PORT || 5000;
 
@@ -23,6 +24,7 @@ app.use('/uploads', express.static(__dirname + '/uploads'));
 
 // API routes
 app.use('/api/users', userRoutes);
+app.use('/api/chats', chatRoutes);
 
 app.get('/', (req, res) => {
     res.send('Welcome to the API!');

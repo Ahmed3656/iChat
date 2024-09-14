@@ -13,21 +13,15 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-   // Hash password
-   const salt = await bcrypt.genSalt(10);
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create a new user
-    user = new User({
-      email,
-      phone,
-      password: hashedPassword,
-    });
-
-    await user.save();
+    const newUser = await User.create({name, email: newEmail, password: hashedPass});
 
     
-    res.status(400).json("success");
+    res.status(200).json("success");
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -53,7 +47,7 @@ const loginUser = async (req, res) => {
   
       // Generate JWT
       const payload = { userId: user._id };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
   
       res.json({ token });
     } catch (err) {

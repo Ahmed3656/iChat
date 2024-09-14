@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { useNavigate,Link } from 'react-router-dom';  // for redirecting
 import axios from 'axios';  // you can use fetch if you prefer
+
+
 const Register = () => {
   const [input, setInput] = useState({ email: '', phone: '', password: '' });
   const [error, setError] = useState(null);
@@ -26,7 +28,7 @@ const Register = () => {
 
     try {
       // Send POST request to the register endpoint
-      const response = await axios.post('http://localhost:5000/api/users/register', {
+      const response = await axios.post(`${process.env.REACT_APP_BASE_URL}/users/register`, {
         email: input.email,
         phone: input.phone,
         password: input.password,
