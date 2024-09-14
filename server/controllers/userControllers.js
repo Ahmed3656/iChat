@@ -4,9 +4,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); // User model
 
 const registerUser = async (req, res) => {
-  const { email, phone, password } = req.body;
+  const { name, email, phone, password } = req.body;
 
   try {
+    const newEmail = email.trim();
+
     // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
@@ -18,7 +20,7 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create a new user
-    const newUser = await User.create({name, email: newEmail, password: hashedPass});
+    const newUser = await User.create({name, email: newEmail, password: hashedPassword});
 
     
     res.status(200).json("success");
@@ -44,12 +46,14 @@ const loginUser = async (req, res) => {
       if (!isMatch) {
         return res.status(400).json({ msg: 'Invalid credentials' });
       }
+
+      const {_id: id, name} = user;
   
       // Generate JWT
       const payload = { userId: user._id };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
   
-      res.json({ token });
+      res.status(200).json({ token, id, name });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
