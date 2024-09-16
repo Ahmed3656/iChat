@@ -26,6 +26,20 @@ a {
   text-overflow: ellipsis;
 }
 
+.loading-page {
+  height: 88.5vh;
+  /* width: 30%; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-page .loading-image img{
+  width: 4rem;
+  aspect-ratio: 1/1;
+  /* margin: auto; */
+}
+
 @media (max-width: 1140px) {
   .sidebar {
     position: fixed;
@@ -57,7 +71,11 @@ a {
   .chats,
   .chat {
     width: 100% !important;
-    min-height: 78vh;
+    min-height: 94.5vh;
+  }
+
+  .loading-page {
+    width: 100%;
   }
 
   .recent-chat-body p, .recent-chat-body h5 {
