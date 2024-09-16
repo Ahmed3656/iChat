@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { Link,useNavigate } from 'react-router-dom';
+import { UserContext } from '../context/userContext';
 
 const Login = () => 
   {
   const [input, setInput] = useState({ identifier: '', password: '' });
   const [error, setError] = useState(null);
+  const { setCurrUser } = useContext(UserContext);
 
   const navigate = useNavigate();
   const handleInputChange = (e) => {
@@ -21,8 +23,6 @@ const Login = () =>
     const UserData={identifier:input.identifier,
       password:input.password
     }
-    console.log('User Identifier:', input.identifier);
-    console.log('Password:', input.password);
       try {
         const res = await fetch(`${process.env.REACT_APP_BASE_URL}/users/login`, {
           method: 'POST',
@@ -32,7 +32,8 @@ const Login = () =>
     
         const data = await res.json();
         if (res.ok) {
-          localStorage.setItem('token', data.token); // Save token
+          console.log(data);
+          setCurrUser(data); // Save token
           console.log('Login successful');
           navigate('/chats')
           

@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { UserContext } from '../context/userContext';
+
 import '../styles/Sidebar.css';
 import { IoChatbubbleEllipses, IoSettingsSharp } from "react-icons/io5";
 import { FaUserGroup } from "react-icons/fa6";
 import { AiOutlineLogout } from "react-icons/ai";
 import { HiMenu } from "react-icons/hi";
-import pfp from '../images/avatar18.jpg'
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { currUser } = useContext(UserContext);
 
   const isActive = (linkPath) => {
     if (linkPath === '/group-chats' && location.pathname.startsWith('/group-chats')) {
@@ -34,7 +36,7 @@ const Sidebar = () => {
         </div>
         <div className="logout">
           <div className="profile-img">
-            <img src={pfp} alt="" />
+            <img src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${currUser.pfp}`} alt="" />
           </div>
           <Link to="/logout" className='pt-2'><AiOutlineLogout /></Link>
         </div>

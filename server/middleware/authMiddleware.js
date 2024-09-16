@@ -10,6 +10,7 @@ const authMiddleware = async (req, res, next) => {
             if(err) return next(new HttpError('Invalid token.'), 403);
 
             req.user = info;
+            req.user._id = info.userId;
             next();
         })
     }

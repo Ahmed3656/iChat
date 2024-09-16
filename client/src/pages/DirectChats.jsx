@@ -24,8 +24,16 @@ const DirectChats = () => {
     <div className="d-flex">
       <Sidebar />
       <div className='d-flex flex-grow-1 m-auto' style={{padding: windowWidth > 1064 ? "3rem 1.5rem 2rem 0" : "3rem 0 0"}}>
-      {(!hasId || windowWidth >= 1064) && <Chats />}
-      {(hasId || windowWidth >= 1064) && <Chat />}
+      {windowWidth >= 1064 ? (
+          <>
+            <Chats />
+            {hasId && <Chat />}
+          </>
+        ) : (
+          <>
+            {hasId ? <Chat /> : <Chats />}
+          </>
+        )}
       </div>
     </div>
   )
