@@ -29,7 +29,7 @@ const accessChat = async (req, res, next) => {
         if (isChat) {
             isChat = await User.populate(isChat, {
                 path: 'latestMessage.sender',
-                select: 'name  pfpemail', 
+                select: 'name  profilePicture email', 
             });
 
             return res.status(200).json(isChat);
@@ -67,7 +67,7 @@ const getChats = async (req, res, next) => {
 
         const fullChats = await User.populate(chats, {
             path: "latestMessage.sender",
-            select: 'name pfp email' 
+            select: 'name profilePicture email' 
         });
 
         res.status(200).send(fullChats);
@@ -92,7 +92,7 @@ const getChat = async (req, res, next) => {
 
         const fullChat = await User.populate(chat, {
             path: "latestMessage.sender",
-            select: 'name pfp email'
+            select: 'name profilePicture email'
         });
 
         res.status(200).json(fullChat);
@@ -134,8 +134,6 @@ const createGroupChat = async (req, res, next) => {
         return next(new HttpError("Server error, unable to create group chat", 500));
     }
 };
-
-
 
 // Rename group chat
 // Patch req : api/chats/renamegroup
@@ -181,7 +179,7 @@ const renameGroup = async (req, res, next) => {
 }
 
 // Set another admin to a group
-// Patch req : api/chats/addadmin
+// Patch req : api/chats/setadmin
 // Protected
 const setAdmin = async (req, res, next) => {
     try {

@@ -2,29 +2,33 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from '../context/userContext';
+import { useChats } from '../context/chatContext';
+
 import LoadingPage from '../components/LoadingPage';
 import { Modal, Form, Button, ListGroup } from 'react-bootstrap';
 import '../styles/ChatsPage.css';
 import { HiSearch } from "react-icons/hi";
 import { BsFillPlusSquareFill, BsX } from "react-icons/bs";
-import pfp from '../images/avatar18.jpg';
+
 
 const Chats = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
   const { currUser } = useContext(UserContext);
+  const { chats, setChats } = useChats();
   const token = currUser?.token;
 
-  const [chats, setChats] = useState([]);
   const [path, setPath] = useState('');
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [chatSearchTerm, setChatSearchTerm] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChats, setFilteredChats] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [searchResults, setSearchResults] = useState([]);
@@ -41,10 +45,11 @@ const Chats = () => {
       setIsLoading(true);
       try {
         const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/chats/`, {
-          withCredentials: true,
+          withCredentials: true, 
           headers: { Authorization: `Bearer ${token}` },
         });
         let allChats = response?.data;
+
         setChats(allChats);
         setFilteredChats(allChats);
       } catch (error) {
@@ -54,7 +59,11 @@ const Chats = () => {
     };
 
     fetchChats();
-  }, [token]);
+  }, []);
+
+  useEffect(() => {
+    setFilteredChats(chats);
+  }, [chats])
 
   // Handle window resize
   useEffect(() => {
@@ -69,19 +78,54 @@ const Chats = () => {
     else if (location.pathname.includes('chats')) setPath('chats');
   }, [location]);
 
+  // Function to set the other user pfp
+  const findOtherUser = (chat) => {
+    if (chat && !chat.isGroupChat) {
+      const other = chat.users.find(user => user._id !== currUser.id);
+      
+      return other;
+    }
+  };
+
   // Filter chats based on search term
   useEffect(() => {
-    if (searchTerm === '') {
+    if (chatSearchTerm === '') {
       setFilteredChats(chats);
     } else {
       setFilteredChats(
         chats.filter((chat) =>
-          chat.chatName.toLowerCase().includes(searchTerm.toLowerCase())
+          chat.isGroupChat ?
+          chat.chatName.toLowerCase().includes(chatSearchTerm.toLowerCase())
+          :
+          findOtherUser(chat).name.toLowerCase().includes(chatSearchTerm.toLowerCase())
         )
       );
     }
-  }, [searchTerm, chats]);
+  }, [chatSearchTerm]);
 
+  // Check for currently selected chat
+  const isActiveChat = (chatId) => {
+    return chatId === id;
+  };
+
+  // Function to handle latest message output
+  const getLatestMessagePreview = (chat) => {
+    if (!chat.latestMessage) return '';
+  
+    const senderName = capitalize(chat.latestMessage.sender.name);
+    let content = '';
+  
+    try {
+      const parsedContent = JSON.parse(chat.latestMessage.content);
+      content = parsedContent.type || chat.latestMessage.content;
+    } catch (error) {
+      content = chat.latestMessage.content;
+    }
+  
+    return (chat.latestMessage?.sender._id !== currUser.id ? `${senderName}: ${content}` : content);
+  };
+
+  // Modal show and close functions
   const handleClose = () => {
     setShowModal(false);
     setSearchTerm('');
@@ -89,8 +133,8 @@ const Chats = () => {
     setSelectedUsers([]);
     setGroupName('');
   };
-
   const handleShow = () => setShowModal(true);
+
 
   const handleUserSelect = (user) => {
     if (path === 'chats') {
@@ -116,7 +160,7 @@ const Chats = () => {
         `${process.env.REACT_APP_BASE_URL}/chats/creategroup`,
         {
           name: groupName,
-          users: selectedUsers.map((user) => user._id),
+          users: JSON.stringify(selectedUsers.map((user) => user._id)),
         },
         {
           withCredentials: true,
@@ -133,26 +177,9 @@ const Chats = () => {
     }
   };
 
-  const isActiveChat = (chatId) => {
-    return chatId === id;
-  };
-
-  const capitalize = (fullName) => {
-    if (typeof fullName !== 'string') return '';
-
-    const nameParts = fullName.trim().split(' ');
-
-    nameParts.forEach((name, index) => {
-      nameParts[index] = name.charAt(0).toUpperCase() + name.slice(1);
-    });
-
-    const capName = nameParts.join(' ');
-
-    return capName.trim();
-  };
-
   // Function to perform the actual API call
   const performSearch = async (query) => {
+    setIsSearching(true);
     try {
       const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/users/search`, {
         params: { q: query },
@@ -165,6 +192,7 @@ const Chats = () => {
     } catch (err) {
       console.error('Search failed', err);
     }
+    setIsSearching(false);
   };
 
   // Handle search input change with debounce
@@ -189,22 +217,46 @@ const Chats = () => {
 
   const onSelectUser = async (id) => {
     handleClose();
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_BASE_URL}/chats`,
-        { userId: id },
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${currUser.token}`,
-          },
-        }
-      );
-      setChats([...chats, response.data]);
-      navigate(`/chats/${response.data._id}`);
-    } catch (error) {
-      console.error('Error starting chat:', error);
+    const existingChat = chats.find((chat) =>
+      chat.isGroupChat === false && 
+      chat.users.some((user) => user._id === id)
+    );
+
+    if(!existingChat) {
+      try {
+        const response = await axios.post(
+          `${process.env.REACT_APP_BASE_URL}/chats`,
+          { userId: id },
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${currUser.token}`,
+            },
+          }
+        );
+        setChats([...chats, response.data]);
+        navigate(`/chats/${response.data._id}`);
+      } catch (error) {
+        console.error('Error starting chat:', error);
+      }
     }
+    else navigate(`/chats/${existingChat._id}`);
+  };
+
+  // Capitalize names
+  const capitalize = (fullName) => {
+    if (typeof fullName !== 'string') return '';
+
+    const nameParts = fullName.trim().split(' ');
+  
+    if (nameParts.length === 1) {
+      return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
+    }
+  
+    const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
+    const lastName = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase();
+  
+    return `${firstName} ${lastName}`.trim();
   };
 
   return isLoading ? (
@@ -220,7 +272,7 @@ const Chats = () => {
             type="search"
             placeholder="Search Chats"
             className={showSearchBar && 'expand'}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setChatSearchTerm(e.target.value)}
           />
           <h5
             onClick={() => setShowSearchBar(!showSearchBar)}
@@ -238,11 +290,7 @@ const Chats = () => {
 
       <div className="chats-menu">
         {filteredChats &&
-        filteredChats.filter(
-          (chat) =>
-            (path === 'group-chats' && chat.isGroupChat) ||
-            (path === 'chats' && !chat.isGroupChat)
-        ).length > 0 ? (
+        filteredChats.filter((chat) =>(path === 'group-chats' && chat.isGroupChat) ||(path === 'chats' && !chat.isGroupChat)).length > 0 ? (
           filteredChats.map((chat, index) => {
             const shouldDisplay =
               (path === 'group-chats' && chat.isGroupChat) ||
@@ -261,12 +309,7 @@ const Chats = () => {
                     <div className="recent-chat-img me-3">
                       <img
                         src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${
-                          chat.chatPfp
-                            ? chat.chatPfp
-                            : chat.isGroupChat
-                            ? 'groupNullPic.jpg'
-                            : 'nullPic.jpg'
-                        }`}
+                          chat.isGroupChat ? (chat.chatPfp || 'groupNullPic.jpg') : (findOtherUser(chat).profilePicture || 'nullPic.jpg')}`}
                         alt=""
                       />
                     </div>
@@ -281,7 +324,7 @@ const Chats = () => {
                             )}
                       </h5>
                       <p style={{ margin: '0', color: '#B1B3BA' }}>
-                        {chat.latestMessage?.content}
+                        {getLatestMessagePreview(chat)}
                       </p>
                     </div>
                   </div>
@@ -295,14 +338,7 @@ const Chats = () => {
             );
           })
         ) : (
-          <h5
-            style={{
-              textAlign: 'center',
-              color: '#B1B3BA',
-              fontSize: '1.5rem',
-              marginTop: '2rem',
-            }}
-          >
+          <h5 style={{textAlign: 'center',color: '#B1B3BA',fontSize: '1.5rem',marginTop: '2rem',}}>
             This section is empty. Start a new conversation!
           </h5>
         )}
@@ -336,11 +372,7 @@ const Chats = () => {
                     className="selected-user me-2 d-flex align-items-center"
                   >
                     <img
-                      src={
-                        user.profilePicture
-                          ? `${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture}`
-                          : pfp
-                      }
+                      src={ `${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture}` }
                       alt={user.name}
                       className="selected-user-img me-2"
                       style={{ width: '40px', borderRadius: '50%' }}
@@ -369,19 +401,46 @@ const Chats = () => {
           </Form.Group>
 
           {/* Display search results */}
-          {searchResults.length > 0 && (
-            <ListGroup className="mt-3">
-              {searchResults.map((user) => (
-                <ListGroup.Item
-                  key={user._id}
-                  onClick={() => handleUserSelect(user)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {user.name} ({user.email})
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-          )}
+          {isSearching?
+            (
+              // Skeleton loader
+              Array(3).fill().map((_, index) => (
+                <div key={index} className="skeleton-loader">
+                  <div className="skeleton-avatar"></div>
+                  <div className="skeleton-text">
+                    <div className="skeleton-line"></div>
+                    <div className="skeleton-line"></div>
+                  </div>
+                </div>
+              ))
+            )
+          :
+            
+          (searchResults.length > 0 && (
+            <ListGroup className='pt-2'>
+                {searchResults.map((user) => (
+                  <ListGroup.Item
+                    key={user._id}
+                    onClick={() => handleUserSelect(user)}
+                    style={{ cursor: 'pointer', backgroundColor: '#363742', border: '1px solid #25262F', color: '#d8d9d9' }}
+                  >
+                    <div className="d-flex align-items-center">
+                      <img
+                        src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture || 'nullPic.jpg'}`}
+                        alt={user.name}
+                        className="rounded-circle mr-3"
+                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                      />
+                      <div className='ps-2'>
+                        <div>{user.name}</div>
+                        <small style={{color:'#9c9c9c'}}>{user.email}</small>
+                      </div>
+                    </div>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+          ))
+          }
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>

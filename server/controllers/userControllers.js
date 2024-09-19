@@ -73,21 +73,26 @@ const loginUser = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
-  const search = async (req, res) => {
-    const searchQuery = req.query.q;
-    try {
-      const users = await User.find({
-        $or: [
+
+const search = async (req, res) => {
+  const searchQuery = req.query.q;
+  try {
+    const users = await User.find({
+      $and : [
+        {$or: [
           { name: { $regex: searchQuery, $options: 'i' } },
           { email: { $regex: searchQuery, $options: 'i' } }
-        ]
-      }).select('-password');
-      res.json(users);
-    } catch (err) {
-      console.error('Error during search:', err.message);  // Check if there's an error here
-      res.status(500).json({ msg: 'Server error' });
-    }
-  };
+        ]},
+        { _id: { $ne: req.user._id } }
+      ]
+    }).select('-password');
+
+    res.json(users);
+  } catch (err) {
+    console.error('Error during search:', err.message);  // Check if there's an error here
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
 // PUT /settings/change-email
 const changeEmail = async (req, res) => {
   try {
