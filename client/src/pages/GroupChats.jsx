@@ -27,6 +27,7 @@ const GroupChats = () => {
       {windowWidth >= 1064 ? (
           <>
             <Chats />
+            {!hasId && <span className='vertical-line'></span>}
             {hasId && <Chat />}
           </>
         ) : (

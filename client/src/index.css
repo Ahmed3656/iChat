@@ -40,6 +40,26 @@ a {
   /* margin: auto; */
 }
 
+.vertical-line {
+  align-self: center;
+  width: 1.5px;
+  height: 70vh;
+  background-color: #6b6b6b;
+  display: inline-block;
+}
+
+.go-home-btn {
+  background-color: #d8d9d9;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  transition: all .3s ease;
+}
+
+.go-home-btn:hover {
+  background-color: #1885FF;
+  color: #d8d9d9;
+}
+
 @media (max-width: 1140px) {
   .sidebar {
     position: fixed;
@@ -101,6 +121,10 @@ a {
     color: #F7F8FB;
     font-size: 24px;
     cursor: pointer;
+  }
+
+  .vertical-line {
+    display: none;
   }
 }
 

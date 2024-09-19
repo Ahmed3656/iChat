@@ -17,6 +17,7 @@ import Settings from './pages/Settings';
 
 // User context to pass the logged-in user through the pages for authorization
 import UserProvider from './context/userContext';
+import { ChatProvider } from './context/chatContext';
 import ConfigureHome from './components/ConfigureHome';
 
 const router = createBrowserRouter([
@@ -42,7 +43,9 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <UserProvider>
+    <ChatProvider>
       <RouterProvider router={router} />
+    </ChatProvider>
     </UserProvider>
   </React.StrictMode>
 );

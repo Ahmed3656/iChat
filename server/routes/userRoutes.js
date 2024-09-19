@@ -13,7 +13,7 @@ router.post('/register', registerUser);
 
 // Login user
 router.post('/login', loginUser);
-router.get('/search', search);
+router.get('/search', authMiddleware, search);
 // Update notification preferences
 router.put('/notifications', authMiddleware, updateNotificationPreferences);
 

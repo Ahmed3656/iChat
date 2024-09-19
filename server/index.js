@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { connect } = require('mongoose');
-const multer = require('multer');
-const path = require('path');  // Import path for handling file paths
-
+const path = require('path');
+const fileUpload = require('express-fileupload');
 require('dotenv').config();
 
 const port = process.env.PORT || 5000;
@@ -21,6 +20,8 @@ app.use(express.urlencoded({ extended: true }));
 // Link the server side with the client side safely
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 
+// To allow file uploads
+app.use(fileUpload());
 // Serve static files from the 'uploads' directory
 app.use('/uploads', express.static('uploads'));
 
