@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
-import { useNavigate,Link } from 'react-router-dom';  // for redirecting
+import { useNavigate, Link } from 'react-router-dom';  // for redirecting
 import axios from 'axios';  // you can use fetch if you prefer
 
-
 const Register = () => {
-  const [input, setInput] = useState({ email: '', phone: '', password: '' });
+  const [input, setInput] = useState({ name: '', email: '', phone: '', password: '', profilePicture: null });
   const [error, setError] = useState(null);
   const navigate = useNavigate();  // for redirecting after registration
 
@@ -14,6 +13,13 @@ const Register = () => {
     setInput((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    setInput((prev) => ({
+      ...prev,
+      profilePicture: e.target.files[0],  // Store the file object
     }));
   };
 
@@ -26,24 +32,28 @@ const Register = () => {
       return;
     }
 
+    // Create a FormData object
+    const formData = new FormData();
+    formData.append('name', input.name);
+    formData.append('email', input.email);
+    formData.append('phone', input.phone);
+    formData.append('password', input.password);
+    if (input.profilePicture) {
+      formData.append('profilePicture', input.profilePicture);  // Append the file
+    }
+
     try {
       // Send POST request to the register endpoint
-      const response = await axios.post(`${process.env.REACT_APP_BASE_URL}/users/register`, {
-        email: input.email,
-        phone: input.phone,
-        password: input.password,
+      const response = await axios.post(`${process.env.REACT_APP_BASE_URL}/users/register`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',  // Set the content type for file uploads
+        },
       });
-
-      // Assuming the response contains a token
-      const { token } = response.data;
-
-      // Store token in localStorage (or sessionStorage)
-      localStorage.setItem('token', token);
 
       // Redirect to login or another page
       navigate('/login');
     } catch (err) {
-      setError(err.response.data.msg || 'Registration failed. Please try again.');
+      setError(err.response?.data?.msg || 'Registration failed. Please try again.');
     }
   };
 
@@ -54,6 +64,19 @@ const Register = () => {
           <h2 className="text-center mb-4">Register</h2>
           {error && <p className="text-danger">{error}</p>}
           <Form onSubmit={handleSubmit}>
+            {/* Input for Name */}
+            <Form.Group controlId="formName" className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                placeholder="Enter your name"
+                value={input.name}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+
             {/* Input for Email */}
             <Form.Group controlId="formEmail" className="mb-3">
               <Form.Label>Email</Form.Label>
@@ -92,6 +115,16 @@ const Register = () => {
               />
             </Form.Group>
 
+            {/* Input for Profile Picture */}
+            <Form.Group controlId="formProfilePicture" className="mb-3">
+              <Form.Label>Profile Picture</Form.Label>
+              <Form.Control
+                type="file"
+                name="profilePicture"
+                onChange={handleFileChange}  // Handle file input change
+              />
+            </Form.Group>
+
             {/* Submit Button */}
             <Button variant="primary" type="submit" className="w-100">
               Register
@@ -100,7 +133,7 @@ const Register = () => {
 
           {/* Link to Login Page */}
           <div className="text-center mt-3">
-            <p>Already have an account? <Link to ="/login">Login here</Link></p>
+            <p>Already have an account? <Link to="/login">Login here</Link></p>
           </div>
         </Col>
       </Row>

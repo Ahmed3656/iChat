@@ -3,7 +3,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const router = Router();
 
 // Import all user controllers
-const { accessChat, getChats, getChat, createGroupChat, renameGroup, setAdmin, removeAdmin, addToGroup, removeFromGroup, changeGroupPfp } = require('../controllers/chatControllers');
+const { accessChat, getChats, getChat, createGroupChat, renameGroup, setAdmin, removeAdmin, addToGroup, removeFromGroup, changeGroupPfp} = require('../controllers/chatControllers');
 
 router.post('/', authMiddleware, accessChat);
 router.get('/', authMiddleware, getChats);
@@ -15,5 +15,4 @@ router.patch('/removeadmin', authMiddleware, removeAdmin);
 router.patch('/groupadd', authMiddleware, addToGroup);
 router.patch('/groupremove', authMiddleware, removeFromGroup);
 router.patch('/changepfp', authMiddleware, changeGroupPfp);
-
 module.exports = router;
