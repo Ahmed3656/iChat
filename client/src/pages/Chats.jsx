@@ -2,80 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from '../context/userContext';
-
 import LoadingPage from '../components/LoadingPage';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-
+import { Modal, Form, Button, ListGroup } from 'react-bootstrap';
 import '../styles/ChatsPage.css';
 import { HiSearch } from "react-icons/hi";
 import { BsFillPlusSquareFill, BsX } from "react-icons/bs";
-import pfp from '../images/avatar18.jpg'
-
-const dChats = [
-  {
-    id: 1,
-    name: "John Doe",
-    notification: true,
-    text: "Hey, what's up?",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    notification: false,
-    text: "Are you free this weekend?",
-  },
-  {
-    id: 3,
-    name: "Alice Johnson",
-    notification: true,
-    text: "Don't forget the meeting!",
-  },
-  {
-    id: 4,
-    name: "Bob Brown",
-    notification: false,
-    text: "Can we reschedule our call?",
-  },
-  {
-    id: 5,
-    name: "Charlie Davis",
-    notification: true,
-    text: "Here's the report you asked for.",
-  },
-  {
-    id: 6,
-    name: "Diana Evans",
-    notification: false,
-    text: "Thanks for the update!",
-  },
-  {
-    id: 7,
-    name: "Ethan Green",
-    notification: true,
-    text: "How's the project going?",
-  },
-  {
-    id: 8,
-    name: "Fiona Harris",
-    notification: true,
-    text: "Reminder: team lunch tomorrow.",
-  },
-  {
-    id: 9,
-    name: "George King",
-    notification: true,
-    text: "Need your feedback on the draft.daddasd adwdawda dsdadadsada dadadasdas",
-  },
-  {
-    id: 10,
-    name: "Hannah Lee",
-    notification: true,
-    text: "Let's catch up soon!",
-  },
-];
-
+import pfp from '../images/avatar18.jpg';
 
 const Chats = () => {
   const location = useLocation();
@@ -90,93 +22,115 @@ const Chats = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChats, setFilteredChats] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState(['John Doe', 'Jane Smith', 'Alice Johnson']);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [searchResults, setSearchResults] = useState([]);
+  const [typingTimeout, setTypingTimeout] = useState(null);
 
   useEffect(() => {
-    if(!token) navigate('/login');
-  }, [token])
+    if (!token) navigate('/login');
+  }, [token, navigate]);
 
-  /////////////////////////////////////////////////////////////// fetching from the server side
-
+  // Fetching chats from the server
   useEffect(() => {
-    const fetchChats = async (req, res) => {
+    const fetchChats = async () => {
       setErrorMsg('');
       setIsLoading(true);
       try {
-        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/chats/`, {withCredentials: true, headers: {Authorization: `Bearer ${token}`}});
+        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/chats/`, {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${token}` },
+        });
         let allChats = response?.data;
-        //allChats = allChats.filter((chat) => chat.latestMessage != null);
         setChats(allChats);
         setFilteredChats(allChats);
-      }
-      catch (error) {
-        setErrorMsg(error.message)
+      } catch (error) {
+        setErrorMsg(error.message);
       }
       setIsLoading(false);
-    }
+    };
 
     fetchChats();
-  }, [])
+  }, [token]);
 
-  /////////////////////////////////////////////////////////////// component functions
-
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Set path based on URL
   useEffect(() => {
     if (location.pathname.includes('group-chats')) setPath('group-chats');
     else if (location.pathname.includes('chats')) setPath('chats');
   }, [location]);
 
+  // Filter chats based on search term
   useEffect(() => {
     if (searchTerm === '') {
       setFilteredChats(chats);
     } else {
-      setFilteredChats(chats.filter(chat =>
-        chat.chatName.toLowerCase().includes(searchTerm.toLowerCase())
-      ));
+      setFilteredChats(
+        chats.filter((chat) =>
+          chat.chatName.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
     }
-  }, [searchTerm]);
+  }, [searchTerm, chats]);
 
   const handleClose = () => {
     setShowModal(false);
-    // to remove any info added
-    // if (path === 'group-chats') {
-    //   setSelectedUsers([]);
-    //   setGroupName('');
-    // }
+    setSearchTerm('');
+    setSearchResults([]);
+    setSelectedUsers([]);
+    setGroupName('');
   };
 
   const handleShow = () => setShowModal(true);
 
-  const handleUserSelect = (userId) => {
+  const handleUserSelect = (user) => {
     if (path === 'chats') {
-      handleClose();
-      navigate(`/chats/${userId}`);
+      // For one-on-one chat
+      onSelectUser(user._id);
     } else {
-      setSelectedUsers(prev => 
-        prev.includes(userId) 
-          ? prev.filter(id => id !== userId)
-          : [...prev, userId]
-      );
+      // For group chat
+      if (!selectedUsers.some((u) => u._id === user._id)) {
+        setSelectedUsers((prev) => [...prev, user]);
+        setSearchTerm('');
+        setSearchResults([]);
+      }
     }
   };
 
   const handleRemoveUser = (user) => {
-    setSelectedUsers(selectedUsers.filter(u => u !== user));
+    setSelectedUsers(selectedUsers.filter((u) => u._id !== user._id));
   };
 
-  const handleCreateGroup = () => {
-    console.log('Group Name:', groupName);
-    console.log('Selected Users:', selectedUsers);
-    handleClose();
+  const handleCreateGroup = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/chats/creategroup`,
+        {
+          name: groupName,
+          users: selectedUsers.map((user) => user._id),
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${currUser.token}`,
+          },
+        }
+      );
+
+      setChats([...chats, response.data]);
+      handleClose();
+    } catch (error) {
+      console.error('Error creating group:', error);
+    }
   };
 
   const isActiveChat = (chatId) => {
@@ -185,131 +139,269 @@ const Chats = () => {
 
   const capitalize = (fullName) => {
     if (typeof fullName !== 'string') return '';
-  
+
     const nameParts = fullName.trim().split(' ');
-  
-    if (nameParts.length === 1) {
-      return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-    }
-  
-    nameParts.forEach((name, index)=> {
+
+    nameParts.forEach((name, index) => {
       nameParts[index] = name.charAt(0).toUpperCase() + name.slice(1);
-    })
-  
+    });
+
     const capName = nameParts.join(' ');
-  
+
     return capName.trim();
   };
 
-  return (
-    (isLoading?
-      <div style={{width: (windowWidth >= 1064 ? '30%' : '100%')}}>
-        <LoadingPage />
-      </div>
-    :
-      <div className="chats">
-        <div className="search d-flex justify-content-between">
-          <h5>Chats</h5>
-          <div className="search-bar d-flex justify-content-end">
-            <input type="search" placeholder='Search Chats' className={showSearchBar && 'expand'} onChange={(e) => setSearchTerm(e.target.value)}/>
-            <h5 onClick={() => setShowSearchBar(!showSearchBar)} style={{cursor: "pointer"}} data-tooltip="Search Chats">
-              <HiSearch />
-            </h5>
-          </div>
-          <div className='add-chat'>
-            <BsFillPlusSquareFill onClick={handleShow} />
-            <span>{path === 'chats' ? "New chat" : "New group"}</span>
-          </div>
-        </div>
+  // Function to perform the actual API call
+  const performSearch = async (query) => {
+    try {
+      const { data } = await axios.get(`${process.env.REACT_APP_BASE_URL}/users/search`, {
+        params: { q: query },
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${currUser.token}`,
+        },
+      });
+      setSearchResults(data);
+    } catch (err) {
+      console.error('Search failed', err);
+    }
+  };
 
-        <div className="chats-menu">
-        {filteredChats && 
-         filteredChats.filter(chat => (path === 'group-chats' && chat.isGroupChat) || (path === 'chats' && !chat.isGroupChat)).length > 0?
-          (filteredChats.map((chat, index) => {
+  // Handle search input change with debounce
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+
+    setTypingTimeout(
+      setTimeout(() => {
+        if (value.trim() !== '') {
+          performSearch(value);
+        } else {
+          setSearchResults([]);
+        }
+      }, 500) // Reduced to 500ms for better UX
+    );
+  };
+
+  const onSelectUser = async (id) => {
+    handleClose();
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/chats`,
+        { userId: id },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${currUser.token}`,
+          },
+        }
+      );
+      setChats([...chats, response.data]);
+      navigate(`/chats/${response.data._id}`);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+    }
+  };
+
+  return isLoading ? (
+    <div style={{ width: windowWidth >= 1064 ? '30%' : '100%' }}>
+      <LoadingPage />
+    </div>
+  ) : (
+    <div className="chats">
+      <div className="search d-flex justify-content-between">
+        <h5>{path === 'group-chats' ? 'Group Chats' : 'Chats'}</h5>
+        <div className="search-bar d-flex justify-content-end">
+          <input
+            type="search"
+            placeholder="Search Chats"
+            className={showSearchBar && 'expand'}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <h5
+            onClick={() => setShowSearchBar(!showSearchBar)}
+            style={{ cursor: 'pointer' }}
+            data-tooltip="Search Chats"
+          >
+            <HiSearch />
+          </h5>
+        </div>
+        <div className="add-chat">
+          <BsFillPlusSquareFill onClick={handleShow} />
+          <span>{path === 'chats' ? 'New chat' : 'New group'}</span>
+        </div>
+      </div>
+
+      <div className="chats-menu">
+        {filteredChats &&
+        filteredChats.filter(
+          (chat) =>
+            (path === 'group-chats' && chat.isGroupChat) ||
+            (path === 'chats' && !chat.isGroupChat)
+        ).length > 0 ? (
+          filteredChats.map((chat, index) => {
             const shouldDisplay =
               (path === 'group-chats' && chat.isGroupChat) ||
               (path === 'chats' && !chat.isGroupChat);
 
-            return shouldDisplay && (
-              <Link key={index} to={`/${path}/${chat._id}`} className={`recent-chat d-flex ${isActiveChat(chat._id) ? 'active-chat' : ''}`}>
-                <div className="recent-chat-description">
-                  <div className="recent-chat-img me-3">
-                    <img src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${chat.chatPfp ? chat.chatPfp : (chat.isGroupChat? 'groupNullPic.jpg' : 'nullPic.jpg')}`} alt=""/>
+            return (
+              shouldDisplay && (
+                <Link
+                  key={index}
+                  to={`/${path}/${chat._id}`}
+                  className={`recent-chat d-flex ${
+                    isActiveChat(chat._id) ? 'active-chat' : ''
+                  }`}
+                >
+                  <div className="recent-chat-description">
+                    <div className="recent-chat-img me-3">
+                      <img
+                        src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${
+                          chat.chatPfp
+                            ? chat.chatPfp
+                            : chat.isGroupChat
+                            ? 'groupNullPic.jpg'
+                            : 'nullPic.jpg'
+                        }`}
+                        alt=""
+                      />
+                    </div>
+                    <div className="recent-chat-body truncate-text">
+                      <h5 style={{ margin: '0', color: '#F7F8FB' }}>
+                        {chat.isGroupChat
+                          ? chat.chatName
+                          : capitalize(
+                              chat.users[0]._id === currUser.id
+                                ? chat.users[1].name
+                                : chat.users[0].name
+                            )}
+                      </h5>
+                      <p style={{ margin: '0', color: '#B1B3BA' }}>
+                        {chat.latestMessage?.content}
+                      </p>
+                    </div>
                   </div>
-                  <div className="recent-chat-body truncate-text">
-                    <h5 style={{ margin: '0', color: "#F7F8FB" }}>{chat.isGroupChat? chat.chatName : capitalize(chat.users[0]._id == currUser.id? chat.users[1].name : chat.users[0].name)}</h5>
-                    <p style={{ margin: '0', color: "#B1B3BA" }}>{chat.latestMessage?.content}</p>
-                  </div>
-                </div>
-                {chat.notification && (
-                  <div className="notification">
-                    <span></span>
-                  </div>
-                )}
-              </Link>
+                  {chat.notification && (
+                    <div className="notification">
+                      <span></span>
+                    </div>
+                  )}
+                </Link>
+              )
             );
-          }))
-        :
-          <h5 style={{ textAlign: 'center', color: '#B1B3BA', fontSize: '1.5rem', marginTop: '2rem' }}>This section is empty. Start a new conversation!</h5>
-        }
-        </div>
+          })
+        ) : (
+          <h5
+            style={{
+              textAlign: 'center',
+              color: '#B1B3BA',
+              fontSize: '1.5rem',
+              marginTop: '2rem',
+            }}
+          >
+            This section is empty. Start a new conversation!
+          </h5>
+        )}
+      </div>
 
-        <Modal show={showModal} onHide={handleClose} className='custom-modal'>
-          <Modal.Header closeButton>
-            <Modal.Title>
-              {path === 'chats' ? 'Search Users' : 'Create New Group'}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {path === 'group-chats' && (
+      {/* Modal for creating chats/groups */}
+      <Modal show={showModal} onHide={handleClose} className="custom-modal">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {path === 'chats' ? 'Search Users' : 'Create New Group'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {path === 'group-chats' && (
+            <>
               <Form.Group className="mb-3">
                 <Form.Label>Group Name</Form.Label>
-                <Form.Control 
-                  type="text" 
-                  placeholder="Enter group name" 
+                <Form.Control
+                  type="text"
+                  placeholder="Enter group name"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                 />
               </Form.Group>
-            )}
-            <Form.Group>
-              <Form.Label>
-                {path === 'chats' ? 'Search Users' : 'Add Users to Group'}
-              </Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="Search users" 
-                // onChange logic will be handled later
-              />
-            </Form.Group>
-            {path === 'group-chats' && (
-              <div className="selected-users">
-                {selectedUsers.map((user, index) => (
-                  <div key={index} className="user-tag">
-                    {user}
-                    <BsX 
-                      className="remove-icon"
+
+              {/* Display selected users with profile pictures */}
+              <div className="selected-users d-flex mb-3">
+                {selectedUsers.map((user) => (
+                  <div
+                    key={user._id}
+                    className="selected-user me-2 d-flex align-items-center"
+                  >
+                    <img
+                      src={
+                        user.profilePicture
+                          ? `${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture}`
+                          : pfp
+                      }
+                      alt={user.name}
+                      className="selected-user-img me-2"
+                      style={{ width: '40px', borderRadius: '50%' }}
+                    />
+                    <span>{user.name}</span>
+                    <BsX
                       onClick={() => handleRemoveUser(user)}
+                      style={{ cursor: 'pointer', marginLeft: '5px' }}
                     />
                   </div>
                 ))}
               </div>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-              Close
+            </>
+          )}
+
+          <Form.Group>
+            <Form.Label>
+              {path === 'chats' ? 'Search Users' : 'Add Users to Group'}
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Search users by name or email"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </Form.Group>
+
+          {/* Display search results */}
+          {searchResults.length > 0 && (
+            <ListGroup className="mt-3">
+              {searchResults.map((user) => (
+                <ListGroup.Item
+                  key={user._id}
+                  onClick={() => handleUserSelect(user)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {user.name} ({user.email})
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          {path === 'group-chats' ? (
+            <Button
+              variant="primary"
+              onClick={handleCreateGroup}
+              disabled={selectedUsers.length < 2 || !groupName}
+            >
+              Create Group
             </Button>
-            {path === 'group-chats' && (
-              <Button variant="primary" onClick={handleCreateGroup}>
-                Create Group
-              </Button>
-            )}
-          </Modal.Footer>
-        </Modal>
-      </div>
-    )
+          ) : (
+            <></>
+          )}
+        </Modal.Footer>
+      </Modal>
+    </div>
   );
 };
 
-export default Chats
+export default Chats;

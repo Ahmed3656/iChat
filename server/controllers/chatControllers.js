@@ -73,7 +73,7 @@ const getChats = async (req, res, next) => {
         res.status(200).send(fullChats);
     }
     catch (error) {
-        return next(new HttpError("Failed to fetch chats", 500));
+        return next(new HttpError("h chats", 500));
     }
 }
 
@@ -367,4 +367,5 @@ const changeGroupPfp = async (req, res, next) => {
     }
 }
 
-module.exports = { accessChat, getChats, getChat, createGroupChat, renameGroup, setAdmin, removeAdmin, addToGroup, removeFromGroup, changeGroupPfp };
+  
+module.exports = { accessChat, getChats, getChat, createGroupChat, renameGroup, setAdmin, removeAdmin, addToGroup, removeFromGroup, changeGroupPfp};
