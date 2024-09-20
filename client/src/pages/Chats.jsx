@@ -35,8 +35,8 @@ const Chats = () => {
   const [typingTimeout, setTypingTimeout] = useState(null);
 
   useEffect(() => {
-    if (!token) navigate('/login');
-  }, [token, navigate]);
+    if (!currUser) navigate('/login');
+  }, [currUser]);
 
   // Fetching chats from the server
   useEffect(() => {
@@ -404,15 +404,17 @@ const Chats = () => {
           {isSearching?
             (
               // Skeleton loader
-              Array(3).fill().map((_, index) => (
-                <div key={index} className="skeleton-loader">
-                  <div className="skeleton-avatar"></div>
-                  <div className="skeleton-text">
-                    <div className="skeleton-line"></div>
-                    <div className="skeleton-line"></div>
+              <div className="skeletons-container">
+                {Array(3).fill().map((_, index) => (
+                  <div key={index} className="skeleton-loader">
+                    <div className="skeleton-avatar"></div>
+                    <div className="skeleton-text">
+                      <div className="skeleton-line"></div>
+                      <div className="skeleton-line"></div>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )
           :
             

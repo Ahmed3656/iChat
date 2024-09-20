@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../context/userContext';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const Settings = () => {
@@ -13,6 +14,13 @@ const Settings = () => {
   const [email, setEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const navigate = useNavigate();
+  // If no user is logged in
+  useEffect(() => {
+    if (!currUser) navigate('/login');
+  }, []);
+
 
   useEffect(() => {
     if (currUser) {

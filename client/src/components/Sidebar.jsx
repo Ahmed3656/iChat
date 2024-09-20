@@ -38,7 +38,7 @@ const Sidebar = () => {
           <div className="profile-img">
             <img src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${currUser.profilePicture}`} alt="" />
           </div>
-          <Link to="/login" className='pt-2'><AiOutlineLogout /></Link>
+          <Link to="/logout" className='pt-2'><AiOutlineLogout /></Link>
         </div>
       </div>
     </>
