@@ -41,10 +41,9 @@ const Register = () => {
     if (input.profilePicture) {
       formData.append('profilePicture', input.profilePicture);  // Append the file
     }
-    console.log(formData)
+
     try {
       // Send POST request to the register endpoint
-      console.log(`${process.env.REACT_APP_BASE_URL}/users/register`)
       const response = await axios.post(`${process.env.REACT_APP_BASE_URL}/users/register`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',  // Set the content type for file uploads
