@@ -22,7 +22,7 @@ const Login = () =>
     e.preventDefault();
     const UserData={identifier:input.identifier,
       password:input.password
-    }
+    } 
       try {
         const res = await fetch(`${process.env.REACT_APP_BASE_URL}/users/login`, {
           method: 'POST',

@@ -7,7 +7,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import SideBar from '../components/Sidebar';
 
 const Settings = () => {
-  const { currUser } = useContext(UserContext);
+  const { currUser, setCurrUser } = useContext(UserContext);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -20,14 +21,13 @@ const Settings = () => {
 
   useEffect(() => {
     if (!currUser) navigate('/login');
-  }, []);
-
-  useEffect(() => {
-    if (currUser) {
+    else {
+      setName(currUser.name);
       setEmail(currUser.email);
     }
-  }, [currUser]);
+  }, [currUser, navigate]);
 
+  const handleNameChange = (e) => setName(e.target.value);
   const handleEmailChange = (e) => setEmail(e.target.value);
   const handleCurrentPasswordChange = (e) => setCurrentPassword(e.target.value);
   const handleNewPasswordChange = (e) => setNewPassword(e.target.value);
@@ -35,58 +35,91 @@ const Settings = () => {
   const handleProfilePictureChange = (e) => setProfilePicture(e.target.files[0]);
 
   const handleSaveChanges = async () => {
+    if (!currentPassword) {
+      setErrorMsg('Current password is required to make changes.');
+      return;
+    }
+
     try {
-      // Update email
-      await axios.put(
-        `${process.env.REACT_APP_BASE_URL}/user/email`,
-        { newEmail: email },
+      const updateData = {
+        currPassword: currentPassword
+      };
+
+      if (name !== currUser.name) updateData.name = name;
+      if (email !== currUser.email) updateData.email = email;
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          setErrorMsg('New passwords do not match.');
+          return;
+        }
+        updateData.newPassword = newPassword;
+        updateData.confirmNewPassword = confirmPassword;
+      }
+
+      const response = await axios.patch(
+        `${process.env.REACT_APP_BASE_URL}/users/edituser`,
+        updateData,
         { headers: { Authorization: `Bearer ${currUser.token}` } }
       );
 
-      // Update password
-      if (newPassword === confirmPassword) {
-        await axios.put(
-          `${process.env.REACT_APP_BASE_URL}/user/password`,
-          { currentPassword, newPassword },
-          { headers: { Authorization: `Bearer ${currUser.token}` } }
-        );
+      if (response.data.message === 'No fields to update') {
+        setSuccessMsg('No changes were made.');
       } else {
-        setErrorMsg('New password and confirmation do not match.');
-        return;
+        setCurrUser(response.data);
+        setSuccessMsg('User information updated successfully.');
       }
 
-      // Update profile picture
+      setErrorMsg('');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      // Handle profile picture update if a new picture is selected
       if (profilePicture) {
         const formData = new FormData();
         formData.append('profilePicture', profilePicture);
+        formData.append('currPassword', currentPassword);
 
-        await axios.put(
-          `${process.env.REACT_APP_BASE_URL}/user/profile-picture`,
+        const pictureResponse = await axios.post(
+          `${process.env.REACT_APP_BASE_URL}/users/change-profile-picture`,
           formData,
-          { headers: { Authorization: `Bearer ${currUser.token}` } }
+          {
+            headers: {
+              Authorization: `Bearer ${currUser.token}`,
+            },
+          }
         );
-      }
 
-      setSuccessMsg('Changes saved successfully.');
-      setErrorMsg('');
+        setCurrUser(prevUser => ({ ...prevUser, profilePicture: pictureResponse.data.profilePicture }));
+        setSuccessMsg(prevMsg => prevMsg + ' Profile picture updated successfully.');
+      }
     } catch (error) {
-      setErrorMsg('Failed to save changes: ' + error.message);
+      setErrorMsg(error.response?.data?.message || 'Failed to save changes.');
       setSuccessMsg('');
     }
   };
 
   const handleDeleteAccount = async () => {
+    if (!currentPassword) {
+      setErrorMsg('Current password is required to delete account.');
+      return;
+    }
+
     try {
       await axios.delete(
         `${process.env.REACT_APP_BASE_URL}/users/delete`,
-        { headers: { Authorization: `Bearer ${currUser.token}` } }
+        { 
+          headers: { Authorization: `Bearer ${currUser.token}` },
+          data: { currPassword: currentPassword }
+        }
       );
 
       setSuccessMsg('Account deleted successfully.');
       setErrorMsg('');
-      // Optionally, redirect the user after account deletion
+      setCurrUser(null);
+      navigate('/login');
     } catch (error) {
-      setErrorMsg('Failed to delete account: ' + error.message);
+      setErrorMsg(error.response?.data?.message || 'Failed to delete account.');
       setSuccessMsg('');
     }
   };
@@ -101,14 +134,26 @@ const Settings = () => {
         {successMsg && <Alert variant="success">{successMsg}</Alert>}
 
         <Form>
-          <Form.Group as={Row} controlId="formEmail">
+          <Form.Group as={Row} controlId="formName">
+            <Form.Label column sm={2}>Name:</Form.Label>
+            <Col sm={10}>
+              <Form.Control
+                type="text"
+                value={name}
+                onChange={handleNameChange}
+                placeholder="Enter your name"
+              />
+            </Col>
+          </Form.Group>
+
+          <Form.Group as={Row} controlId="formEmail" className="my-3">
             <Form.Label column sm={2}>Email:</Form.Label>
             <Col sm={10}>
               <Form.Control
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
-                placeholder="Enter your new email"
+                placeholder="Enter your email"
               />
             </Col>
           </Form.Group>

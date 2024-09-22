@@ -1,5 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const HttpError = require('../models/errorModel');
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/userModel'); // User model
 
 // Controller to handle registration
@@ -8,23 +11,26 @@ const registerUser = async (req, res) => {
 
   try {
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email });
+    const existingUser = await User.findOne({ $or: [{ email }, { phone }]  });
     if (existingUser) {
-      return res.status(400).json({ msg: 'User already exists' });
+      return res.status(400).json({ msg: 'User with this email or phone already exists' });
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Handle the profile picture upload (or assign a default)
-    const profilePicture = req.file ? req.file.filename : 'default.jpg';
+    let profilePicture = 'default.jpg';
+    if (req.files && req.files.profilePicture) {
+      const file = req.files.profilePicture;
+      const fileName = `${Date.now()}_${file.name}`;
+      await file.mv(`./uploads/${fileName}`);
+      profilePicture = fileName;
+    }
 
-    // Create a new user
     const newUser = new User({
       name,
-      email: email.trim(),
-      phone,
+      email: email ? email.trim().toLowerCase() : undefined,
+      phone: phone ? phone.trim() : undefined,
       password: hashedPassword,
       profilePicture
     });
@@ -33,11 +39,10 @@ const registerUser = async (req, res) => {
     res.status(200).json({ msg: 'User registered successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
 
-// Controller to handle login
 const loginUser = async (req, res) => {
   const { identifier, password } = req.body; // identifier could be email or phone
 
@@ -54,14 +59,14 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ msg: 'Incorrect password' });
     }
 
-    const { _id: id, name, profilePicture } = user;
+    const { _id: id, name, email, profilePicture } = user;
 
     // Generate JWT token
     const payload = { userId: user._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     // Send response with token, id, and name
-    res.status(200).json({ token, id, name, profilePicture });
+    res.status(200).json({ token, id, name, email, profilePicture });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -91,28 +96,68 @@ const search = async (req, res) => {
   }
 };
 
-// Controller to handle email change
-const changeEmail = async (req, res) => {
+// Controller to edit user info
+const editUser = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const { newEmail } = req.body;
+    const { name, email, currPassword, newPassword, confirmNewPassword } = req.body;
 
-    const emailExists = await User.findOne({ email: newEmail });
-    if (emailExists) {
-      return res.status(400).json({ message: 'Email already in use' });
+    // Check if current password is provided
+    if (!currPassword) {
+      return next(new HttpError("Current password is required", 422));
     }
 
-    const updatedUser = await User.findByIdAndUpdate(userId, { email: newEmail }, { new: true });
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return next(new HttpError('User not found', 404));
+    }
 
-    res.status(200).json({
-      success: true,
-      message: 'Email updated successfully',
-      data: updatedUser.email
-    });
+    // Verify current password
+    const matchingPasswords = await bcrypt.compare(currPassword, user.password);
+    if (!matchingPasswords) {
+      return next(new HttpError('Invalid current password', 422));
+    }
+
+    // Prepare update object
+    const updateFields = {};
+
+    // Update name if provided
+    if (name && name !== user.name) {
+      updateFields.name = name;
+    }
+
+    // Update email if provided
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists && (emailExists._id !== req.user._id)) {
+        return next(new HttpError('Email already exists', 422));
+      }
+      updateFields.email = email;
+    }
+
+    // Update password if provided
+    if (newPassword) {
+      if (newPassword !== confirmNewPassword) {
+        return next(new HttpError('New passwords do not match', 422));
+      }
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    // Only update if there are fields to update
+    if (Object.keys(updateFields).length > 0) {
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        updateFields,
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } else {
+      res.status(200).json({ message: 'No fields to update' });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update email', error });
+    res.status(500).json({ message: 'Failed to update user information', error: error.message });
   }
-};
+}
 
 // Controller to handle account deletion
 const deleteAccount = async (req, res) => {
@@ -129,54 +174,51 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-// Controller to handle password change
-const changePassword = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { currentPassword, newPassword } = req.body;
-
-    // Find the user
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Check if current password is correct
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Incorrect current password' });
-    }
-
-    // Hash the new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    // Update the password
-    user.password = hashedPassword;
-    await user.save();
-
-    res.status(200).json({ message: 'Password updated successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to update password', error });
-  }
-};
-
 // Controller to handle profile picture change
-const changeProfilePicture = async (req, res) => {
+const changeProfilePicture = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const profilePicture = req.file ? req.file.filename : 'default.jpg'; // Handle file upload
+    if (!req.files || !req.files.pfp) {
+      return next(new HttpError('Please choose an image', 422));
+    }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { profilePicture },
-      { new: true }
-    );
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return next(new HttpError('User not found', 404));
+    }
 
-    res.status(200).json({
-      success: true,
-      message: 'Profile picture updated successfully',
-      data: updatedUser.profilePicture
+    const { pfp } = req.files;
+
+    // Validate file size and type
+    if (pfp.size > 500000) {
+      return next(new HttpError('Picture is too large, choose one that is less than 500KB', 422));
+    }
+
+    const allowedExtensions = ['jpg', 'jpeg', 'png'];
+    const fileExtension = pfp.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+      return next(new HttpError('Invalid file format. Only jpg, jpeg, and png are allowed.', 422));
+    }
+
+    // Delete the old profile picture if it exists and is not default
+    if (user.profilePicture && user.profilePicture !== 'default.jpg') {
+      fs.unlink(path.join(__dirname, '..', 'uploads', user.profilePicture), (err) => {
+        if (err) return next(new HttpError(err, 500));
+      });
+    }
+
+    const fileName = `${Date.now()}_${pfp.name}`;
+    pfp.mv(path.join(__dirname, '..', 'uploads', fileName), async (err) => {
+      if (err) return next(new HttpError(err, 500));
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { profilePicture: fileName },
+        { new: true }
+      );
+
+      if (!updatedUser) return next(new HttpError("Profile picture couldn't be changed", 422));
+
+      res.status(200).json(updatedUser);
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update profile picture', error });
@@ -188,8 +230,7 @@ module.exports = {
   registerUser,
   loginUser,
   search,
-  changeEmail,
+  editUser,
   deleteAccount,
-  changePassword,
   changeProfilePicture
 };
