@@ -1,8 +1,6 @@
-// controllers/authController.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); // User model
-
 
 // Controller to handle registration
 const registerUser = async (req, res) => {
@@ -10,7 +8,7 @@ const registerUser = async (req, res) => {
 
   try {
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email});
+    const existingUser = await User.findOne({ email: email });
     if (existingUser) {
       return res.status(400).json({ msg: 'User already exists' });
     }
@@ -39,11 +37,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-
-
-
-
-// controllers/authController.js (continued)
+// Controller to handle login
 const loginUser = async (req, res) => {
   const { identifier, password } = req.body; // identifier could be email or phone
 
@@ -74,26 +68,30 @@ const loginUser = async (req, res) => {
   }
 };
 
+// Controller to handle user search
 const search = async (req, res) => {
   const searchQuery = req.query.q;
   try {
     const users = await User.find({
-      $and : [
-        {$or: [
-          { name: { $regex: searchQuery, $options: 'i' } },
-          { email: { $regex: searchQuery, $options: 'i' } }
-        ]},
+      $and: [
+        {
+          $or: [
+            { name: { $regex: searchQuery, $options: 'i' } },
+            { email: { $regex: searchQuery, $options: 'i' } }
+          ]
+        },
         { _id: { $ne: req.user._id } }
       ]
     }).select('-password');
 
     res.json(users);
   } catch (err) {
-    console.error('Error during search:', err.message);  // Check if there's an error here
+    console.error('Error during search:', err.message);
     res.status(500).json({ msg: 'Server error' });
   }
 };
-// PUT /settings/change-email
+
+// Controller to handle email change
 const changeEmail = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -108,14 +106,15 @@ const changeEmail = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Email updated successfully",
+      message: 'Email updated successfully',
       data: updatedUser.email
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update email', error });
   }
 };
-// DELETE /settings/delete-account
+
+// Controller to handle account deletion
 const deleteAccount = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -123,33 +122,74 @@ const deleteAccount = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Account deleted successfully"
+      message: 'Account deleted successfully'
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete account', error });
   }
 };
-// PUT /settings/notifications
-const updateNotificationPreferences = async (req, res) => {
+
+// Controller to handle password change
+const changePassword = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { notificationsEnabled } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    const updatedUser = await User.findByIdAndUpdate(userId, {
-      notificationsEnabled
-    }, { new: true });
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-    res.status(200).json({
-      success: true,
-      message: "Notification preferences updated successfully",
-      data: updatedUser.notificationsEnabled
-    });
+    // Check if current password is correct
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password' });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update the password
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update notification preferences', error });
+    res.status(500).json({ message: 'Failed to update password', error });
   }
 };
 
+// Controller to handle profile picture change
+const changeProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const profilePicture = req.file ? req.file.filename : 'default.jpg'; // Handle file upload
 
-  
-  module.exports = { registerUser, loginUser, search, updateNotificationPreferences,deleteAccount,changeEmail};
-  
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      data: updatedUser.profilePicture
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update profile picture', error });
+  }
+};
+
+// Exporting the controllers
+module.exports = {
+  registerUser,
+  loginUser,
+  search,
+  changeEmail,
+  deleteAccount,
+  changePassword,
+  changeProfilePicture
+};

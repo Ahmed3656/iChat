@@ -15,13 +15,17 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/search', authMiddleware, search);
 // Update notification preferences
-router.put('/notifications', authMiddleware, updateNotificationPreferences);
 
-// Change username
 
 // Change email
 router.put('/email', authMiddleware, changeEmail);
 
 // Delete account
-router.delete('/', authMiddleware, deleteAccount);
+router.delete('/delete', authMiddleware, deleteAccount);
+// Change user password (with current password for security)
+router.put('/users/change-password', authMiddleware, authController.changePassword);
+
+// Change profile picture (upload image using multer)
+router.put('/users/change-profile-picture', authMiddleware, upload.single('profilePicture'), authController.changeProfilePicture);
+
 module.exports = router;
