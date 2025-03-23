@@ -1,7 +1,7 @@
 import React from 'react';
 import Loader from '../images/loader.gif';
 
-const LoadingPage = () => {
+export const LoadingPage = () => {
   return (
     <div className='loading-page'>
         <div className="loading-image">
@@ -10,5 +10,3 @@ const LoadingPage = () => {
     </div>
   )
 }
-
-export default LoadingPage

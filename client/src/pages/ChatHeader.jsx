@@ -1,10 +1,11 @@
 import React, { useState, useRef, useContext } from 'react';
+
+import axios from 'axios';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
+
 import { UserContext } from '../context/userContext';
 import { useChats } from '../context/chatContext';
-import axios from 'axios';
 
-import '../styles/ChatsPage.css';
 import { Modal, Tooltip, OverlayTrigger } from 'react-bootstrap';
 import { IoArrowBack } from "react-icons/io5";
 import { ImAttachment } from "react-icons/im";
@@ -12,8 +13,11 @@ import { HiPencilSquare } from "react-icons/hi2";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdOutlineChangeCircle } from "react-icons/md";
 import { FaUserPlus, FaUserMinus, FaCrown, FaUserShield, FaUserSlash } from 'react-icons/fa';
+import '../styles/ChatsPage.css';
 
-const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}) => {
+import { capitalize, capitalizeFirstLast } from '../utils/stringUtils';
+
+export const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -87,34 +91,6 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
         }
     };
 
-    // Functions to capitalize users' names
-    const capitalize = (fullName) => {
-        if (typeof fullName !== 'string') return '';
-    
-        const nameParts = fullName.trim().split(' ');
-    
-        nameParts.forEach((name, index) => {
-        nameParts[index] = name.charAt(0).toUpperCase() + name.slice(1);
-        });
-    
-        return nameParts.join(' ').trim();
-    };
-
-    const capitalizeFirstLast = (fullName) => {
-        if (typeof fullName !== 'string') return '';
-    
-        const nameParts = fullName.trim().split(' ');
-    
-        if (nameParts.length === 1) {
-        return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-        }
-    
-        const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-        const lastName = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase();
-    
-        return `${firstName} ${lastName}`.trim();
-    };
-
     ////////////////////////////////////////////////////////// Admin functions
 
   const changeGroupName = () => {
@@ -140,7 +116,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
       }
   
       try {
-        const response = await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/renamegroup`,
+        await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/renamegroup`,
           { chatId: id, chatName: newName },
           { withCredentials: true, headers: { Authorization: `Bearer ${currUser.token}` } }
         );
@@ -225,7 +201,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
 
   const addNewUser = async (user) => {
     try {
-      const response = await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/groupadd`, {chatId: chatInfo?._id, userId: user._id}, {
+      await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/groupadd`, {chatId: chatInfo?._id, userId: user._id}, {
         withCredentials: true,
           headers: { 
             Authorization: `Bearer ${currUser.token}`
@@ -244,7 +220,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
 
   const setAdmin = async (user) => {
     try {
-      const response = await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/setadmin`, {chatId: chatInfo?._id, userId: user._id}, {
+      await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/setadmin`, {chatId: chatInfo?._id, userId: user._id}, {
         withCredentials: true,
           headers: { 
             Authorization: `Bearer ${currUser.token}`
@@ -263,7 +239,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
 
   const removeAdmin = async (user) => {
     try {
-      const response = await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/removeadmin`, {chatId: chatInfo?._id, userId: user._id}, {
+      await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/removeadmin`, {chatId: chatInfo?._id, userId: user._id}, {
         withCredentials: true,
           headers: { 
             Authorization: `Bearer ${currUser.token}`
@@ -280,7 +256,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
 
   const removeUser = async (user) => {
     try {
-      const response = await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/groupremove`, {chatId: chatInfo?._id, userId: user._id}, {
+      await axios.patch(`${process.env.REACT_APP_BASE_URL}/chats/groupremove`, {chatId: chatInfo?._id, userId: user._id}, {
         withCredentials: true,
           headers: { 
             Authorization: `Bearer ${currUser.token}`
@@ -364,7 +340,7 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
                 <div className="group-chat-body">
                   {chatInfo.users.map((user) => (
                     <div key={user._id} className="user-item">
-                      <img src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture || 'nullPic.jpg'}`} className="user-avatar"/>
+                      <img src={`${process.env.REACT_APP_ASSETS_URL}/uploads/${user.profilePicture || 'nullPic.jpg'}`} className="user-avatar" alt={user.name}/>
                       <span className="user-name">{capitalizeFirstLast(user.name)}</span>
                       {user._id === chatInfo.mainAdmin._id ? (
                         <OverlayTrigger placement="top" delay={{ show: 500, hide: 0 }} overlay={<Tooltip id={`main-admin-tooltip-${user._id}`}>Main Admin</Tooltip>}>
@@ -449,5 +425,3 @@ const ChatHeader = ({chatInfo, setChatInfo, setMessages, otherUser, setErrorMsg}
     </>
   )
 }
-
-export default ChatHeader

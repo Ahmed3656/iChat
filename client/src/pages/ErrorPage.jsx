@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const ErrorPage = () => {
+export const ErrorPage = () => {
   return (
     <section className='error-page d-flex justify-content-center align-items-center' style={{height : '60vh'}}>
       <div className="text-center">
@@ -12,5 +12,3 @@ const ErrorPage = () => {
     </section>
   )
 }
-
-export default ErrorPage

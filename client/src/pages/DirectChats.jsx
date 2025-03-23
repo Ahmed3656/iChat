@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { UserContext } from '../context/userContext';
 
-import Sidebar from '../components/Sidebar';
-import Chats from './Chats';
-import Chat from './Chat';
+import { UserContext } from '../context';
+import { Sidebar } from '../components';
+import { Chats, ChatWindow } from './';
 
-const DirectChats = () => {
+export const DirectChats = () => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [hasId, setHasId] = useState(false);
   const { id } = useParams();
@@ -16,7 +15,7 @@ const DirectChats = () => {
   // If no user is logged in
   useEffect(() => {
     if (!currUser) navigate('/login');
-  }, []);
+  }, [currUser, navigate]);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -36,16 +35,14 @@ const DirectChats = () => {
           <>
             <Chats />
             {!hasId && <span className='vertical-line'></span>}
-            {hasId && <Chat />}
+            {hasId && <ChatWindow />}
           </>
         ) : (
           <>
-            {hasId ? <Chat /> : <Chats />}
+            {hasId ? <ChatWindow /> : <Chats />}
           </>
         )}
       </div>
     </div>
   )
 }
-
-export default DirectChats

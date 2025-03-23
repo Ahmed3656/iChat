@@ -8,7 +8,7 @@ import { FaUserGroup } from "react-icons/fa6";
 import { AiOutlineLogout } from "react-icons/ai";
 import { HiMenu } from "react-icons/hi";
 
-const Sidebar = () => {
+export const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { currUser } = useContext(UserContext);
@@ -44,5 +44,3 @@ const Sidebar = () => {
     </>
   )
 }
-
-export default Sidebar;

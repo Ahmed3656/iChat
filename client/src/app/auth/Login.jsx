@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { Link,useNavigate } from 'react-router-dom';
-import { UserContext } from '../context/userContext';
+import { UserContext } from '../../context/userContext';
 
-const Login = () => 
+export const Login = () => 
   {
   const [input, setInput] = useState({ identifier: '', password: '' });
   const [error, setError] = useState(null);
@@ -54,7 +54,6 @@ const Login = () =>
           <h2 className="text-center mb-4">Login</h2>
           {error && <p className="text-danger">{error}</p>}
           <Form onSubmit={handleSubmit}>
-            {/* Input for Email/Phone */}
             <Form.Group controlId="formIdentifier" className="mb-3">
               <Form.Label>Email or Phone</Form.Label>
               <Form.Control
@@ -67,7 +66,6 @@ const Login = () =>
               />
             </Form.Group>
 
-            {/* Input for Password */}
             <Form.Group controlId="formPassword" className="mb-3">
               <Form.Label>Password</Form.Label>
               <Form.Control
@@ -80,13 +78,11 @@ const Login = () =>
               />
             </Form.Group>
 
-            {/* Submit Button */}
             <Button variant="primary" type="submit" className="w-100">
               Login
             </Button>
           </Form>
 
-          {/* Link to the Register Page */}
           <div className="text-center mt-3">
             <p>Don't have an account? <Link to="/register">Register here</Link></p>
           </div>
@@ -95,5 +91,3 @@ const Login = () =>
     </Container>
   );
 };
-
-export default Login;

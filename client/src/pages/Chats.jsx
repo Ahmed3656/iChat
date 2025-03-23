@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { UserContext } from '../context/userContext';
-import { useChats } from '../context/chatContext';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 
-import LoadingPage from '../components/LoadingPage';
+import axios from 'axios';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+
 import { Modal, Form, Button, ListGroup } from 'react-bootstrap';
-import '../styles/ChatsPage.css';
 import { HiSearch } from "react-icons/hi";
 import { BsFillPlusSquareFill, BsX } from "react-icons/bs";
+import '../styles/ChatsPage.css';
 
+import { UserContext, useChats } from '../context';
 
-const Chats = () => {
+import { LoadingPage } from '../components';
+import { capitalize } from '../utils';
+
+export const Chats = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -36,7 +38,7 @@ const Chats = () => {
 
   useEffect(() => {
     if (!currUser) navigate('/login');
-  }, [currUser]);
+  }, [currUser, navigate]);
 
   // Fetching chats from the server
   useEffect(() => {
@@ -59,7 +61,7 @@ const Chats = () => {
     };
 
     fetchChats();
-  }, []);
+  }, [setChats, token]);
 
   useEffect(() => {
     setFilteredChats(chats);
@@ -79,13 +81,13 @@ const Chats = () => {
   }, [location]);
 
   // Function to set the other user pfp
-  const findOtherUser = (chat) => {
+  const findOtherUser = useCallback((chat) => {
     if (chat && !chat.isGroupChat) {
       const other = chat.users.find(user => user._id !== currUser.id);
       
       return other;
     }
-  };
+  }, [currUser.id]);
 
   // Filter chats based on search term
   useEffect(() => {
@@ -101,7 +103,7 @@ const Chats = () => {
         )
       );
     }
-  }, [chatSearchTerm]);
+  }, [chatSearchTerm, chats, findOtherUser]);
 
   // Check for currently selected chat
   const isActiveChat = (chatId) => {
@@ -243,28 +245,13 @@ const Chats = () => {
     else navigate(`/chats/${existingChat._id}`);
   };
 
-  // Capitalize names
-  const capitalize = (fullName) => {
-    if (typeof fullName !== 'string') return '';
-
-    const nameParts = fullName.trim().split(' ');
-  
-    if (nameParts.length === 1) {
-      return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-    }
-  
-    const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
-    const lastName = nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase();
-  
-    return `${firstName} ${lastName}`.trim();
-  };
-
   return isLoading ? (
     <div style={{ width: windowWidth >= 1064 ? '30%' : '100%' }}>
       <LoadingPage />
     </div>
   ) : (
     <div className="chats">
+      {errorMsg && <h2>{errorMsg}</h2>}
       <div className="search d-flex justify-content-between">
         <h5>{path === 'group-chats' ? 'Group Chats' : 'Chats'}</h5>
         <div className="search-bar d-flex justify-content-end">
@@ -464,5 +451,3 @@ const Chats = () => {
     </div>
   );
 };
-
-export default Chats;

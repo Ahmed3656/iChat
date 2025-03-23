@@ -1,12 +1,13 @@
-import axios from 'axios';
 import React, { useState, useEffect, useContext } from 'react';
-import { UserContext } from '../context/userContext';
-import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import SideBar from '../components/Sidebar';
 
-const Settings = () => {
+import { UserContext } from '../../context';
+import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { Sidebar } from '../../components';
+
+export const Settings = () => {
   const { currUser, setCurrUser } = useContext(UserContext);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,7 +75,6 @@ const Settings = () => {
       setNewPassword('');
       setConfirmPassword('');
 
-      // Handle profile picture update if a new picture is selected
       if (profilePicture) {
         const formData = new FormData();
         formData.append('profilePicture', profilePicture);
@@ -126,7 +126,7 @@ const Settings = () => {
 
   return (
     <div className="d-flex">
-      <SideBar />
+      <Sidebar />
       <Container className="my-4">
         <h2>Settings</h2>
 
@@ -217,5 +217,3 @@ const Settings = () => {
     </div>
   );
 };
-
-export default Settings;
