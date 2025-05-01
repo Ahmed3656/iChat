@@ -56,7 +56,7 @@ export const Register = () => {
   return (
     <Container className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
       <Row>
-        <Col md={12}>
+        <Col md={12} className='rounded' style={{border:'1px solid #616369', padding:'3rem'}}>
           <h2 className="text-center mb-4">Register</h2>
           {error && <p className="text-danger">{error}</p>}
           <Form onSubmit={handleSubmit}>
