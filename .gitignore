@@ -2,7 +2,10 @@
 /node_modules
 /.pnp
 .pnp.js
+
+# uploads
 /uploads
+/server/uploads/
 
 # testing
 /coverage
@@ -13,16 +16,14 @@
 # misc
 .DS_Store
 
-# Environment variables (ignore all .env files)
+# environment variables
 .env
 .env.*
 **/.env
 **/.env.*
 !.env.example
 
-
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-client/.env
-server/.env
